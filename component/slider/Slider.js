@@ -55,41 +55,63 @@ function Slider(props) {
   const sliderDotAnimator = useRef(new Animated.Value(0)).current;
   const {sliderWidth, currentXPosition, stepRatio} = sliderState;
 
-  const onPanResponderMove = useCallback(
-    (event, gesture) => {
-      const {nativeEvent} = event;
+  const getPositionRatio = useCallback(
+    ({nativeEvent}) => {
       const {locationX} = nativeEvent;
       const positionRatio = Math.ceil((locationX / sliderWidth) * 100);
-      setAnimateDuration(50);
-      if (locationX >= 0 && positionRatio <= 100) {
-        const sliderPositionValue = (positionRatio / 100) * sliderWidth;
-        dispatch({
-          type: actionType.SET_CURRENT_X_POSITION,
-          currentXPosition: sliderPositionValue,
-          value: (positionRatio / 100) * max,
-        });
-      }
+      return positionRatio;
+    },
+    [sliderWidth],
+  );
+
+  const getCalculatedValue = useCallback(
+    ratioValue => {
+      const sliderPositionValue = (ratioValue / 100) * sliderWidth;
+      const calculatedByRatioValue = (ratioValue / 100) * max;
+      return [sliderPositionValue, calculatedByRatioValue];
     },
     [max, sliderWidth],
   );
-  const onPanResponderLogical = useCallback(
-    (event, gesture) => {
-      const {nativeEvent} = event;
-      const {locationX} = nativeEvent;
-      const positionRatio = Math.ceil((locationX / sliderWidth) * 100);
-      setAnimateDuration(240);
-      if (locationX >= 0 && positionRatio <= 100) {
-        const destinationRatio =
-          Math.round(positionRatio / stepRatio) * stepRatio;
-        const sliderPositionValue = (destinationRatio / 100) * sliderWidth;
+
+  const processPanResponseRatio = useCallback(
+    positionRatio => {
+      if (positionRatio >= 0 && positionRatio <= 100) {
+        const [
+          sliderPositionValue,
+          calculatedByRatioValue,
+        ] = getCalculatedValue(positionRatio);
         dispatch({
           type: actionType.SET_CURRENT_X_POSITION,
           currentXPosition: sliderPositionValue,
-          value: (destinationRatio / 100) * max,
+          value: calculatedByRatioValue === 0 ? min : calculatedByRatioValue,
         });
       }
     },
-    [max, sliderWidth, stepRatio],
+    [getCalculatedValue, min],
+  );
+
+  const onPanResponderMove = useCallback(
+    (event, gesture) => {
+      const positionRatio = getPositionRatio(event);
+      if (animateDuration !== 50) {
+        setAnimateDuration(50);
+      }
+      processPanResponseRatio(positionRatio);
+    },
+    [animateDuration, getPositionRatio, processPanResponseRatio],
+  );
+
+  const onPanResponderRelease = useCallback(
+    (event, gesture) => {
+      const positionRatio = getPositionRatio(event);
+      if (animateDuration !== 140) {
+        setAnimateDuration(140);
+      }
+      const destinationRatio =
+        Math.round(positionRatio / stepRatio) * stepRatio;
+      processPanResponseRatio(destinationRatio);
+    },
+    [animateDuration, getPositionRatio, processPanResponseRatio, stepRatio],
   );
 
   const panResponder = useMemo(
@@ -97,11 +119,20 @@ function Slider(props) {
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onPanResponderMove,
-        onPanResponderGrant: onPanResponderLogical,
-        onPanResponderRelease: onPanResponderLogical,
+        onPanResponderRelease,
       }),
-    [onPanResponderLogical, onPanResponderMove],
+    [onPanResponderMove, onPanResponderRelease],
   );
+
+  const stepDots = useMemo(() => {
+    const numOfStep = 100 / stepRatio;
+    let components = [];
+    for (let index = 0; index <= numOfStep; index++) {
+      const percent = (stepRatio * index) / 100;
+      components = [...components, sliderWidth * percent];
+    }
+    return components;
+  }, [sliderWidth, stepRatio]);
 
   useEffect(() => {
     dispatch({
@@ -138,6 +169,15 @@ function Slider(props) {
         pointerEvents="none"
         style={[styles.sliderDot, {left: sliderDotAnimator}]}
       />
+      {stepDots.map((position, index) => {
+        return (
+          <View
+            pointerEvents="none"
+            key={index}
+            style={[styles.sliderStepDot, {left: position}]}
+          />
+        );
+      })}
     </View>
   );
 }

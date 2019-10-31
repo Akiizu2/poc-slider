@@ -21,5 +21,13 @@ export default StyleSheet.create({
     backgroundColor: 'black',
     position: 'absolute',
     top: -10,
+    zIndex: 2,
+  },
+  sliderStepDot: {
+    width: 10,
+    height: 10,
+    backgroundColor: 'red',
+    position: 'absolute',
+    zIndex: 1,
   },
 });
