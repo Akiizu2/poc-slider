@@ -7,7 +7,7 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
-import {View, Text, PanResponder, Animated} from 'react-native';
+import {View, PanResponder, Animated} from 'react-native';
 
 import styles from './slider.style';
 
@@ -15,7 +15,7 @@ const initialState = {
   sliderWidth: 0,
   currentXPosition: 0,
   value: 0,
-  stepRatio: 20,
+  stepRatio: 4,
 };
 
 const actionType = {
@@ -48,7 +48,7 @@ const sliderReducer = (state, action) => {
 };
 
 function Slider(props) {
-  const {min, max, value} = props;
+  const {min, max, value, onChange} = props;
   const [sliderState, dispatch] = useReducer(sliderReducer, initialState);
   const [animateDuration, setAnimateDuration] = useState(240);
 
@@ -80,21 +80,25 @@ function Slider(props) {
           sliderPositionValue,
           calculatedByRatioValue,
         ] = getCalculatedValue(positionRatio);
+        const resultValue =
+          calculatedByRatioValue === 0 ? min : calculatedByRatioValue;
         dispatch({
           type: actionType.SET_CURRENT_X_POSITION,
           currentXPosition: sliderPositionValue,
-          value: calculatedByRatioValue === 0 ? min : calculatedByRatioValue,
+          value: resultValue,
         });
+        onChange({value: resultValue});
       }
     },
-    [getCalculatedValue, min],
+    [getCalculatedValue, min, onChange],
   );
 
   const onPanResponderMove = useCallback(
     (event, gesture) => {
       const positionRatio = getPositionRatio(event);
-      if (animateDuration !== 50) {
-        setAnimateDuration(50);
+
+      if (animateDuration !== 1) {
+        setAnimateDuration(1);
       }
       processPanResponseRatio(positionRatio);
     },
@@ -120,6 +124,7 @@ function Slider(props) {
         onStartShouldSetPanResponder: () => true,
         onPanResponderMove,
         onPanResponderRelease,
+        onPanResponderGrant: onPanResponderRelease,
       }),
     [onPanResponderMove, onPanResponderRelease],
   );
@@ -186,6 +191,7 @@ Slider.defaultProps = {
   min: 0,
   value: 100000,
   max: 250000,
+  onChange() {},
 };
 
 export default memo(Slider);

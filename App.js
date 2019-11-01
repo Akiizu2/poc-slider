@@ -6,7 +6,7 @@
  * @flow
  */
 
-import React from 'react';
+import React, {useState} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -19,9 +19,14 @@ import {
 import {Slider} from './component/slider';
 
 const App: () => React$Node = () => {
+  const [currentValue, setCurrentValue] = useState(0);
   return (
     <View style={styles.container}>
-      <Slider />
+      <Text style={{paddingBottom: 64}}>Current Value: {currentValue}</Text>
+      <Slider
+        value={currentValue}
+        onChange={({value}) => setCurrentValue(value)}
+      />
     </View>
   );
 };
